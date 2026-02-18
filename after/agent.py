@@ -24,12 +24,17 @@ Usage:
 
 import argparse
 import json
+import logging
 import os
 import random
 import sys
 import time
 import uuid
 from datetime import datetime
+
+# Suppress noisy OTel export warnings - if Jaeger isn't reachable, log cleanly
+logging.getLogger("opentelemetry.sdk.trace.export").setLevel(logging.CRITICAL)
+logging.getLogger("opentelemetry.exporter.otlp").setLevel(logging.CRITICAL)
 
 from kubernetes import client, config
 from kubernetes.client.rest import ApiException
@@ -66,8 +71,23 @@ def setup_tracing(user: str) -> trace.Tracer:
 
     provider = TracerProvider(resource=resource)
     exporter = OTLPSpanExporter(endpoint=JAEGER_OTLP_ENDPOINT)
-    provider.add_span_processor(BatchSpanProcessor(exporter))
+    provider.add_span_processor(BatchSpanProcessor(
+        exporter,
+        # Don't block the agent if Jaeger is unreachable
+        max_export_batch_size=512,
+        export_timeout_millis=3000,
+    ))
     trace.set_tracer_provider(provider)
+
+    # Quick connectivity check - warn once, don't crash
+    try:
+        import urllib.request
+        urllib.request.urlopen(JAEGER_OTLP_ENDPOINT.replace("/v1/traces", ""), timeout=1)
+    except Exception:
+        print(f"  ⚠️  Jaeger not reachable at {JAEGER_OTLP_ENDPOINT}")
+        print(f"     Run in another terminal: kubectl port-forward svc/jaeger 16686:16686 4318:4318 -n cloudxai")
+        print(f"     Continuing without trace export...")
+        print()
 
     return trace.get_tracer("ai-scaling-agent", "1.0.0")
 
@@ -462,7 +482,7 @@ Examples:
 
     # Flush traces
     time.sleep(2)
-    print("\n  📡 Traces exported to Jaeger.")
+    print("\n  📡 Traces flushed to Jaeger (if port-forward is running).")
 
 
 if __name__ == "__main__":

@@ -17,7 +17,8 @@ spec:
     spec:
       containers:
       - name: nginx
-        image: nginx:alpine
+        image: nginx:1.25
+        imagePullPolicy: IfNotPresent
         resources:
           requests:
             cpu: "100m"

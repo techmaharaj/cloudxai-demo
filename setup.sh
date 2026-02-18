@@ -107,8 +107,8 @@ else
   ok "Kyverno installed"
 fi
 
-step "Waiting for Kyverno webhook to be ready..."
-kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=kyverno -n kyverno --timeout=90s
+step "Waiting for Kyverno admission controller to be ready..."
+kubectl rollout status deployment/kyverno-admission-controller -n kyverno --timeout=120s
 ok "Kyverno is ready"
 
 # ── Policies intentionally NOT applied yet (demo flow) ───────────────────────

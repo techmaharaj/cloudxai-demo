@@ -147,13 +147,14 @@ section "Step 2.2 - Start Jaeger UI (open in a new terminal if not already runni
 
 speak "Jaeger is our tracing backend. It will show us the full decision chain."
 echo ""
-cmd "kubectl port-forward svc/jaeger 16686:16686 -n cloudxai &"
+cmd "kubectl port-forward svc/jaeger 16686:16686 4318:4318 -n cloudxai &"
 echo ""
-echo "  Starting port-forward in background..."
-kubectl port-forward svc/jaeger 16686:16686 -n "$NAMESPACE" &>/dev/null &
+echo "  Starting port-forward in background (UI + OTLP trace ingestion)..."
+kubectl port-forward svc/jaeger 16686:16686 4318:4318 -n "$NAMESPACE" &>/dev/null &
 PF_PID=$!
 sleep 2
 ok "Jaeger UI available at: http://localhost:16686"
+ok "Jaeger OTLP endpoint: http://localhost:4318 (agent will send traces here)"
 echo ""
 speak "Open http://localhost:16686 in your browser now."
 speak "It's empty - no traces yet. We'll come back to this."
