@@ -1,0 +1,42 @@
+apiVersion: audit.k8s.io/v1
+kind: Policy
+rules:
+  # Log all scaling actions on deployments at RequestResponse level
+  - level: RequestResponse
+    verbs: ["patch", "update"]
+    resources:
+    - group: "apps"
+      resources: ["deployments"]
+
+  # Log all pod operations
+  - level: Metadata
+    verbs: ["create", "delete"]
+    resources:
+    - group: ""
+      resources: ["pods"]
+
+  # Skip noisy system requests
+  - level: None
+    users: ["system:kube-proxy"]
+    verbs: ["watch"]
+    resources:
+    - group: ""
+      resources: ["endpoints", "services", "services/status"]
+
+  - level: None
+    userGroups: ["system:nodes"]
+    verbs: ["get"]
+    resources:
+    - group: ""
+      resources: ["nodes", "nodes/status"]
+
+  # Skip health checks
+  - level: None
+    nonResourceURLs:
+    - "/healthz*"
+    - "/readyz*"
+    - "/livez*"
+    - "/metrics"
+
+  # Default: log metadata for everything else
+  - level: Metadata

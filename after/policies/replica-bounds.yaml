@@ -1,0 +1,64 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: replica-bounds
+  annotations:
+    policies.kyverno.io/title: Enforce Dynamic Replica Bounds for AI Agent
+    policies.kyverno.io/description: >
+      Context-aware replica limits that RBAC cannot express.
+      The AI agent may only scale between 2 and 5 replicas.
+      This is not a static permission - it's a runtime policy that
+      considers the requested replica count and blocks overstepping.
+      RBAC would allow or deny all scaling; this policy allows scaling
+      within safe boundaries only.
+spec:
+  validationFailureAction: Enforce
+  background: false
+  rules:
+  - name: check-replica-minimum
+    match:
+      any:
+      - resources:
+          kinds:
+          - Deployment
+          namespaces:
+          - cloudxai
+          operations:
+          - UPDATE
+    validate:
+      message: >
+        ❌ BOUNDARY VIOLATION: Replica count too low.
+        AI agent attempted to scale below minimum (2 replicas).
+        Current request: {{ request.object.spec.replicas }} replicas.
+        Policy: Agent must maintain at least 2 replicas for availability.
+      deny:
+        conditions:
+          any:
+          - key: "{{ request.object.spec.replicas }}"
+            operator: LessThan
+            value: 2
+
+  - name: check-replica-maximum
+    match:
+      any:
+      - resources:
+          kinds:
+          - Deployment
+          namespaces:
+          - cloudxai
+          operations:
+          - UPDATE
+    validate:
+      message: >
+        ❌ BOUNDARY VIOLATION: Replica count too high.
+        AI agent attempted to scale beyond maximum (5 replicas).
+        Current request: {{ request.object.spec.replicas }} replicas.
+        Policy: Agent is limited to 5 replicas. For higher scale,
+        a human operator must approve and apply directly.
+        This is what RBAC cannot do - it would allow ANY replica count.
+      deny:
+        conditions:
+          any:
+          - key: "{{ request.object.spec.replicas }}"
+            operator: GreaterThan
+            value: 5

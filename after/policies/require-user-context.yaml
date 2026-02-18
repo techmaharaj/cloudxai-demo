@@ -1,0 +1,35 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-user-context
+  annotations:
+    policies.kyverno.io/title: Require User Context on AI Agent Actions
+    policies.kyverno.io/description: >
+      All scaling actions performed by the AI agent must include a user identity
+      annotation. This ensures every autonomous action is traceable to a human
+      who authorized the agent to act. Without this, audit logs only show the
+      service account, making forensics impossible.
+spec:
+  validationFailureAction: Enforce
+  background: false
+  rules:
+  - name: check-user-context-annotation
+    match:
+      any:
+      - resources:
+          kinds:
+          - Deployment
+          namespaces:
+          - cloudxai
+          operations:
+          - UPDATE
+    validate:
+      message: >
+        ❌ ACCOUNTABILITY VIOLATION: AI agent action blocked.
+        Missing required annotation 'accountability.ai/triggered-by'.
+        Every agent action must include the identity of the human who
+        authorized it. Add --user <identity> when invoking the agent.
+      pattern:
+        metadata:
+          annotations:
+            accountability.ai/triggered-by: "?*"

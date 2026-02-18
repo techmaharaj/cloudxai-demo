@@ -1,0 +1,5 @@
+kubernetes
+openai
+opentelemetry-sdk
+opentelemetry-exporter-otlp-proto-http
+opentelemetry-exporter-otlp-proto-grpc
