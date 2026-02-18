@@ -1,32 +1,49 @@
 #!/usr/bin/env bash
 # ============================================================
 # CloudXAI Demo - Teardown Script
-# Removes the kind cluster and all demo resources
+# Removes all demo resources from the Docker Desktop cluster.
+# Does NOT delete the cluster itself.
 # ============================================================
 set -euo pipefail
 
-CLUSTER_NAME="cloudxai-demo"
-
-echo "🗑️  Tearing down CloudXAI demo..."
+echo "🗑️  Tearing down CloudXAI demo resources..."
 echo ""
 
 # Kill any port-forward processes
 echo "  → Stopping port-forwards..."
-pkill -f "kubectl port-forward" 2>/dev/null || true
+pkill -f "kubectl port-forward svc/jaeger" 2>/dev/null || true
 
-# Delete kind cluster (removes everything inside it)
-if kind get clusters 2>/dev/null | grep -q "^${CLUSTER_NAME}$"; then
-  echo "  → Deleting kind cluster '$CLUSTER_NAME'..."
-  kind delete cluster --name "$CLUSTER_NAME"
-  echo "  ✅ Cluster deleted"
+# Delete the cloudxai namespace (removes Jaeger, demo-app, RBAC, policies)
+if kubectl get namespace cloudxai &>/dev/null; then
+  echo "  → Deleting cloudxai namespace (Jaeger, demo-app, RBAC, policies)..."
+  kubectl delete namespace cloudxai
+  echo "  ✅ cloudxai namespace deleted"
 else
-  echo "  ℹ️  Cluster '$CLUSTER_NAME' not found, nothing to delete"
+  echo "  ℹ️  cloudxai namespace not found, skipping"
 fi
 
-# Clean up temp files
-echo "  → Cleaning up temp files..."
-rm -f /tmp/cloudxai-audit-policy.yaml
-rm -rf /tmp/cloudxai-audit-logs
+# Delete the before-scenario app from default namespace
+if kubectl get deployment demo-app -n default &>/dev/null; then
+  echo "  → Deleting before-scenario demo-app from default namespace..."
+  kubectl delete deployment demo-app -n default
+  echo "  ✅ before/demo-app deleted"
+else
+  echo "  ℹ️  before/demo-app not found in default namespace, skipping"
+fi
+
+# Uninstall Kyverno
+if helm status kyverno -n kyverno &>/dev/null; then
+  echo "  → Uninstalling Kyverno..."
+  helm uninstall kyverno -n kyverno
+  kubectl delete namespace kyverno --ignore-not-found
+  echo "  ✅ Kyverno uninstalled"
+else
+  echo "  ℹ️  Kyverno not installed, skipping"
+fi
+
+# Remove Kyverno cluster policies (in case they were applied manually)
+kubectl delete clusterpolicy require-user-context replica-bounds --ignore-not-found 2>/dev/null || true
 
 echo ""
-echo "✅ Teardown complete. All demo resources removed."
+echo "✅ Teardown complete."
+echo "   Your Docker Desktop cluster is untouched — only demo resources were removed."
