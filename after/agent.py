@@ -1,25 +1,28 @@
 #!/usr/bin/env python3
 """
-AFTER: AI Scaling Agent - FULL ACCOUNTABILITY
-=============================================
-This is the FIXED version demonstrating three accountability patterns:
+Platform AI Operations Service - ACCOUNTABLE MODE
+=================================================
+This is the platform's shared AI service with three accountability
+patterns active. Developers invoke this service via CLI, Slack, or API.
+The platform tracks WHO invoked it, enforces WHAT boundaries apply,
+and records WHY the AI made each decision.
 
 Pattern 1: User Context Propagation
-  - Every action is annotated with the human who triggered the agent
-  - Audit logs show real user identity, not just service account
+  - Platform annotates every k8s action with the invoking user's identity
+  - Audit logs show the human, not just the service account
 
 Pattern 2: Dynamic Permission Boundaries
-  - Kyverno policies enforce replica bounds (2-5)
-  - Context-aware rules that RBAC cannot express
+  - Kyverno enforces context-aware replica limits (2-5)
+  - Rules RBAC cannot express: conditional, runtime-evaluated
 
 Pattern 3: Decision Attribution
-  - OpenTelemetry traces capture the full reasoning chain
-  - Trace: metrics observed → LLM reasoning → decision → action
-  - Every Kubernetes action links to a trace ID
+  - OpenTelemetry traces the full chain: metrics → reasoning → action
+  - Every action links to a trace ID for forensic investigation
 
 Usage:
-  python agent.py --user alice@company.com [--replicas N] [--dry-run]
-  python agent.py --user alice@company.com --chat  # interactive mode
+  python agent.py --user alice@company.com        # standard invocation
+  python agent.py --user alice@company.com --replicas 10  # test boundaries
+  python agent.py --user alice@company.com --chat # interactive mode
 """
 
 import argparse
@@ -380,21 +383,22 @@ def run_scaling_cycle(user: str, tracer: trace.Tracer, apps_v1, dry_run: bool = 
             root_span.set_attribute("decision.action", "scaled")
             root_span.set_attribute("decision.result", "success")
             root_span.set_status(Status(StatusCode.OK))
-            print(f"\n  ✅ Successfully scaled to {new_replicas} replicas")
-            print(f"\n  🔍 What the audit log NOW shows:")
-            print(f'     user: "system:serviceaccount:cloudxai:ai-agent"')
+            print(f"\n  ✅ Platform successfully scaled to {new_replicas} replicas")
+            print(f"\n  📋 Audit log now records:")
+            print(f'     service-account: "system:serviceaccount:cloudxai:ai-ops-agent"')
             print(f'     annotations:')
-            print(f'       accountability.ai/triggered-by: "{user}"')
-            print(f'       accountability.ai/trace-id: "{trace_id}"')
-            print(f'       accountability.ai/reason: "{reasoning}"')
+            print(f'       accountability.ai/triggered-by: "{user}"   ← the human')
+            print(f'       accountability.ai/trace-id:    "{trace_id}"')
+            print(f'       accountability.ai/reason:      "{reasoning}"')
             print(f'       accountability.ai/cpu-observed: "{cpu:.1f}%"')
-            print(f"\n  🔗 View trace in Jaeger:")
+            print(f"\n  🔗 View full reasoning trace:")
             print(f"     http://localhost:16686/search?service=ai-scaling-agent")
         else:
             root_span.set_attribute("decision.action", "blocked")
             root_span.set_attribute("decision.result", "policy_violation")
             root_span.set_status(Status(StatusCode.ERROR, "Blocked by Kyverno policy"))
-            print(f"\n  🛡️  Action blocked by policy. Trace still recorded for audit.")
+            print(f"\n  🛡️  Platform blocked this action (policy violation).")
+            print(f"      Trace still recorded — even rejected actions are auditable.")
 
 
 # ─── Entry Point ───────────────────────────────────────────────────────────────
@@ -435,12 +439,13 @@ Examples:
         JAEGER_OTLP_ENDPOINT = args.jaeger_endpoint
 
     print("=" * 60)
-    print("🤖 AI Scaling Agent (FULL ACCOUNTABILITY MODE)")
+    print("🤖 Platform AI Operations Service")
+    print("   Mode: ACCOUNTABLE")
     print("=" * 60)
-    print(f"\n  ✅ Pattern 1: User context propagation ENABLED")
-    print(f"  ✅ Pattern 2: Dynamic policy boundaries ENABLED (replicas: {MIN_REPLICAS}-{MAX_REPLICAS})")
-    print(f"  ✅ Pattern 3: Decision attribution via OTel ENABLED")
-    print(f"\n  Triggered by: {args.user}")
+    print(f"\n  ✅ Pattern 1: User context propagation  ACTIVE")
+    print(f"  ✅ Pattern 2: Dynamic policy boundaries  ACTIVE (replicas: {MIN_REPLICAS}-{MAX_REPLICAS})")
+    print(f"  ✅ Pattern 3: Decision attribution       ACTIVE (OTel → Jaeger)")
+    print(f"\n  Platform service invoked by: {args.user}")
     print(f"  Jaeger endpoint: {JAEGER_OTLP_ENDPOINT}")
     if args.dry_run:
         print(f"  Mode: DRY RUN (no changes will be made)")
@@ -459,8 +464,9 @@ Examples:
 
     if args.replicas is not None:
         # Manual override mode - useful for demo'ing policy blocking
-        print(f"  ⚠️  Manual replica override: {args.replicas}")
-        print(f"     (This will be blocked by Kyverno if outside bounds {MIN_REPLICAS}-{MAX_REPLICAS})")
+        print(f"  ⚠️  Boundary override requested: {args.replicas} replicas")
+        print(f"     Policy allows: {MIN_REPLICAS}-{MAX_REPLICAS} replicas")
+        print(f"     Platform will block this if outside bounds.")
 
         trace_id = str(uuid.uuid4())
         tracer_instance = trace.get_tracer("ai-scaling-agent")

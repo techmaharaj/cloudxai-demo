@@ -1,17 +1,13 @@
 #!/usr/bin/env bash
 # ============================================================
-# CloudXAI Demo Script
-# "Accountable AI on Kubernetes: How Platforms Enforce What RBAC Can't"
-#
-# Run time: ~10 minutes
-# Prerequisites: ./setup.sh must have been run first
+# Accountable AI on Kubernetes - Platform Engineering Demo
+# "How Platforms Enforce What RBAC Can't"
 # ============================================================
 set -euo pipefail
 
 NAMESPACE="cloudxai"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -30,7 +26,7 @@ pause() {
 banner() {
   echo ""
   echo -e "${BLUE}╔══════════════════════════════════════════════════════════════╗${NC}"
-  echo -e "${BLUE}║${NC}  ${BOLD}$1${NC}"
+  printf "${BLUE}║${NC}  ${BOLD}%-60s${NC}${BLUE}║${NC}\n" "$1"
   echo -e "${BLUE}╚══════════════════════════════════════════════════════════════╝${NC}"
 }
 
@@ -41,33 +37,26 @@ section() {
   echo -e "${MAGENTA}└─────────────────────────────────────────────────────────────┘${NC}"
 }
 
-speak() { echo -e "  ${CYAN}🎤 SPEAKER NOTE: $1${NC}"; }
-cmd()   { echo -e "  ${GREEN}$ $1${NC}"; }
-warn()  { echo -e "  ${RED}⚠️  $1${NC}"; }
-ok()    { echo -e "  ${GREEN}✅ $1${NC}"; }
+cmd() { echo -e "\n  ${GREEN}\$ $1${NC}"; }
 
 # ─────────────────────────────────────────────────────────────────────────────
-banner "CloudXAI Demo: Accountable AI on Kubernetes"
+banner "Accountable AI on Kubernetes"
+echo ""
+echo -e "  ${CYAN}Talk:${NC} How Platforms Enforce What RBAC Can't"
+echo -e "  ${CYAN}Scenario:${NC} Your platform team provides AI Operations as a Service."
+echo -e "  ${CYAN}Problem:${NC} When the platform AI acts, audit logs lose the human behind it."
 # ─────────────────────────────────────────────────────────────────────────────
-
-speak "Welcome. Today I'm going to show you a problem that every platform team"
-speak "faces when AI agents start acting on Kubernetes - and three patterns to fix it."
-speak ""
-speak "The scenario: an AI agent that auto-scales deployments based on CPU metrics."
-speak "Sounds useful. But when something goes wrong, can you answer:"
-speak "  WHO triggered the agent? WHAT boundaries applied? WHY did it decide that?"
 
 pause
 
-# ─────────────────────────────────────────────────────────────────────────────
-banner "PART 1: The Problem (BEFORE)"
-# ─────────────────────────────────────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════════
+banner "PART 1: The Accountability Gap"
+# ═══════════════════════════════════════════════════════════════════════════════
 
-section "Step 1.1 - Deploy the app to the DEFAULT namespace (no accountability)"
-
-speak "First, let's deploy our demo app to the default namespace."
-speak "This is the 'before' state - no accountability features."
+section "1.1 - Deploy Platform AI Service (No Accountability)"
 echo ""
+echo "  Your platform provides an AI service developers invoke to manage workloads."
+echo "  This is the unaccountable version — no user tracking, no traces, no boundaries."
 cmd "kubectl apply -f before/k8s/deployment.yaml"
 kubectl apply -f "$SCRIPT_DIR/before/k8s/deployment.yaml"
 echo ""
@@ -77,34 +66,25 @@ kubectl rollout status deployment/demo-app -n default --timeout=60s
 
 pause
 
-section "Step 1.2 - Run the agent WITHOUT accountability"
-
-speak "Now let's run the AI agent in its broken state."
-speak "Watch what happens - it scales the deployment, but..."
+section "1.2 - Developer Invokes Platform AI Service"
 echo ""
+echo "  Alice runs: platform-ai scale payment-service"
+echo "  Internally, the platform AI agent receives her request and acts..."
 cmd "python3 before/agent.py"
 echo ""
 python3 "$SCRIPT_DIR/before/agent.py"
 
 pause
 
-section "Step 1.3 - Look at the audit log (the USELESS version)"
-
-speak "Here's what the Kubernetes audit log shows for that action."
-speak "This is what your security team sees at 2am when something goes wrong."
+section "1.3 - What the Audit Log Shows"
 echo ""
-
-# Show simulated audit log output (what it would look like)
-cat << 'EOF'
-  📋 Kubernetes Audit Log Entry:
+cat << 'AUDITLOG'
+  📋 Kubernetes Audit Log:
   ─────────────────────────────────────────────────────────────
   {
-    "kind": "Event",
-    "apiVersion": "audit.k8s.io/v1",
     "verb": "patch",
     "user": {
-      "username": "system:serviceaccount:default:default",
-      "groups": ["system:serviceaccounts", "system:authenticated"]
+      "username": "system:serviceaccount:default:ai-ops-agent"
     },
     "objectRef": {
       "resource": "deployments",
@@ -114,187 +94,150 @@ cat << 'EOF'
     "responseStatus": { "code": 200 }
   }
   ─────────────────────────────────────────────────────────────
-EOF
-
+AUDITLOG
 echo ""
-warn "Questions you CANNOT answer from this log:"
-echo "  ❓ WHO triggered this agent? (just 'default' service account)"
-echo "  ❓ WHY did it choose that replica count?"
-echo "  ❓ Was this within approved boundaries?"
-echo "  ❓ What metrics drove this decision?"
+echo -e "  ${RED}❌ WHO invoked the platform service?${NC}  Unknown. Just a service account."
+echo -e "  ${RED}❌ WHY did the AI choose that replica count?${NC}  No reasoning captured."
+echo -e "  ${RED}❌ WHAT boundaries applied?${NC}  RBAC allowed it — no runtime context."
 echo ""
-speak "This is the accountability gap. RBAC told us the service account CAN patch"
-speak "deployments. But it can't tell us WHO authorized this action, or WHY."
+echo "  This is the accountability gap RBAC cannot close."
 
 pause
 
-# ─────────────────────────────────────────────────────────────────────────────
-banner "PART 2: The Fix (AFTER) - Three Accountability Patterns"
-# ─────────────────────────────────────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════════
+banner "PART 2: Three Accountability Patterns"
+# ═══════════════════════════════════════════════════════════════════════════════
 
-speak "Now let's add the three accountability patterns."
-speak "Everything runs in the 'cloudxai' namespace - one kubectl delete and it's gone."
-
-section "Step 2.1 - Verify the after-scenario app is running"
-
+section "2.1 - The Accountable Platform Service"
 echo ""
+echo "  Same platform AI service, now running in the 'cloudxai' namespace"
+echo "  with all three accountability patterns layered on top."
 cmd "kubectl get all -n cloudxai"
 kubectl get all -n "$NAMESPACE"
 
 pause
 
-section "Step 2.2 - Start Jaeger UI (open in a new terminal if not already running)"
-
-speak "Jaeger is our tracing backend. It will show us the full decision chain."
+section "2.2 - Start Jaeger (Decision Trace Viewer)"
 echo ""
+echo "  Jaeger will show the full reasoning chain for every AI action."
 cmd "kubectl port-forward svc/jaeger 16686:16686 4318:4318 -n cloudxai &"
 echo ""
-echo "  Starting port-forward in background (UI + OTLP trace ingestion)..."
 kubectl port-forward svc/jaeger 16686:16686 4318:4318 -n "$NAMESPACE" &>/dev/null &
 PF_PID=$!
 sleep 2
-ok "Jaeger UI available at: http://localhost:16686"
-ok "Jaeger OTLP endpoint: http://localhost:4318 (agent will send traces here)"
-echo ""
-speak "Open http://localhost:16686 in your browser now."
-speak "It's empty - no traces yet. We'll come back to this."
+echo -e "  ${GREEN}✅ Jaeger UI:${NC}   http://localhost:16686"
+echo -e "  ${GREEN}✅ OTLP ingest:${NC} http://localhost:4318"
 
 pause
 
-# ─────────────────────────────────────────────────────────────────────────────
-section "Step 2.3 - Pattern 1 + 2: Apply Kyverno Policies"
-# ─────────────────────────────────────────────────────────────────────────────
-
-speak "Pattern 1: Every agent action MUST include user identity."
-speak "Pattern 2: Agent can ONLY scale between 2 and 5 replicas."
-speak "These are things RBAC literally cannot express."
+# ─── Pattern 1 ────────────────────────────────────────────────────────────────
+section "2.3 - Pattern 1: User Context Propagation"
 echo ""
+echo "  Policy: Every AI action MUST carry the identity of who invoked it."
+echo "  Without this annotation, the platform blocks the action entirely."
 cmd "cat after/policies/require-user-context.yaml"
 echo ""
 cat "$SCRIPT_DIR/after/policies/require-user-context.yaml"
 echo ""
+cmd "kubectl apply -f after/policies/require-user-context.yaml"
+kubectl apply -f "$SCRIPT_DIR/after/policies/require-user-context.yaml"
 
 pause
 
+# ─── Pattern 2 ────────────────────────────────────────────────────────────────
+section "2.4 - Pattern 2: Dynamic Permission Boundaries"
+echo ""
+echo "  Policy: Platform enforces context-aware replica limits."
+echo "  RBAC can only allow or deny all scaling — it cannot express bounds like this."
 cmd "cat after/policies/replica-bounds.yaml"
 echo ""
 cat "$SCRIPT_DIR/after/policies/replica-bounds.yaml"
 echo ""
+cmd "kubectl apply -f after/policies/replica-bounds.yaml"
+kubectl apply -f "$SCRIPT_DIR/after/policies/replica-bounds.yaml"
 
 pause
 
-cmd "kubectl apply -f after/policies/"
-kubectl apply -f "$SCRIPT_DIR/after/policies/"
+section "2.5 - Test: Boundary Enforcement"
 echo ""
-ok "Policies applied. Now let's test them."
-
-pause
-
-# ─────────────────────────────────────────────────────────────────────────────
-section "Step 2.4 - Test Policy Blocking (replica count too high)"
-# ─────────────────────────────────────────────────────────────────────────────
-
-speak "Let's try to scale to 10 replicas. The policy allows max 5."
-speak "Watch Kyverno block this - with a clear reason."
-echo ""
+echo "  Alice asks the platform AI to scale to 10 replicas. Policy max is 5."
 cmd "python3 after/agent.py --user alice@company.com --replicas 10"
 echo ""
 python3 "$SCRIPT_DIR/after/agent.py" --user alice@company.com --replicas 10 || true
+echo ""
+echo -e "  ${GREEN}✅ Platform blocked overstepping. RBAC alone couldn't do this.${NC}"
+echo "     RBAC would have allowed any replica count the service account can patch."
 
 pause
 
-# ─────────────────────────────────────────────────────────────────────────────
-section "Step 2.5 - Pattern 3: Run the full accountable agent"
-# ─────────────────────────────────────────────────────────────────────────────
-
-speak "Now let's run the full agent - with user context, LLM reasoning, and tracing."
-speak "This time, Alice is the user. Every action will be attributed to her."
+# ─── Pattern 3 ────────────────────────────────────────────────────────────────
+section "2.6 - Pattern 3: Decision Attribution"
 echo ""
+echo "  Alice invokes the platform AI service. Full trace captured end-to-end:"
+echo "  metrics observed → LLM reasoning → policy check → action taken."
 cmd "python3 after/agent.py --user alice@company.com"
 echo ""
 python3 "$SCRIPT_DIR/after/agent.py" --user alice@company.com
 
 pause
 
-# ─────────────────────────────────────────────────────────────────────────────
-section "Step 2.6 - The USEFUL audit log"
-# ─────────────────────────────────────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════════
+banner "PART 3: Accountability in Action"
+# ═══════════════════════════════════════════════════════════════════════════════
 
-speak "Now look at what the deployment annotations show."
-speak "This is what your audit log can now reference."
+section "3.1 - What the Deployment Knows Now"
 echo ""
+echo "  Platform writes full accountability metadata to every action it takes:"
 cmd "kubectl get deployment demo-app -n cloudxai -o jsonpath='{.metadata.annotations}' | python3 -m json.tool"
 echo ""
-kubectl get deployment demo-app -n "$NAMESPACE" -o jsonpath='{.metadata.annotations}' 2>/dev/null | python3 -m json.tool || \
+kubectl get deployment demo-app -n "$NAMESPACE" \
+  -o jsonpath='{.metadata.annotations}' 2>/dev/null | python3 -m json.tool || \
   echo "  (Run the agent first to populate annotations)"
 
 pause
 
-# ─────────────────────────────────────────────────────────────────────────────
-section "Step 2.7 - View traces in Jaeger"
-# ─────────────────────────────────────────────────────────────────────────────
+section "3.2 - The Decision Trace in Jaeger"
+echo ""
+echo "  Open: http://localhost:16686"
+echo "  Select service: ai-scaling-agent"
+echo ""
+echo "  Each trace shows the complete chain:"
+echo "    agent.scaling_cycle"
+echo "      ├── metrics.observe        → CPU observed, current replicas"
+echo "      ├── llm.reasoning          → exact LLM prompt + response"
+echo "      └── k8s.scale_deployment   → action taken, result"
+echo ""
+echo "  Every span tagged with: triggered-by: alice@company.com"
 
-speak "Now open Jaeger: http://localhost:16686"
-speak "Select service: ai-scaling-agent"
-speak "You'll see the full trace:"
-speak "  agent.scaling_cycle"
-speak "    └── metrics.observe       (what CPU was observed)"
-speak "    └── llm.reasoning         (what OpenAI decided and why)"
-speak "    └── k8s.scale_deployment  (what action was taken)"
+pause
+
+section "3.3 - The Forensics Moment"
 echo ""
-echo -e "  ${CYAN}🌐 Open: http://localhost:16686${NC}"
+echo "  Incident at 3am: prod auto-scaled, cost spiked."
 echo ""
-echo "  Each span contains:"
-echo "    • agent.triggered_by  = alice@company.com"
-echo "    • metrics.cpu_percent = the observed CPU value"
-echo "    • llm.reasoning       = the exact LLM explanation"
-echo "    • llm.raw_response    = the full OpenAI response"
-echo "    • k8s.replicas.*      = before and after replica counts"
+echo "  Without accountability:"
+echo "    → Audit log: 'service-account:ai-ops-agent' — dead end."
+echo ""
+echo "  With these three patterns:"
+echo "    → Annotation: accountability.ai/triggered-by: alice@company.com"
+echo "    → Annotation: accountability.ai/trace-id: <id>"
+echo "    → Open Jaeger trace → CPU was 84% → LLM recommended scale-up → policy allowed it"
+echo "    → Full chain. Accountable. Done."
 
 pause
 
 # ─────────────────────────────────────────────────────────────────────────────
-section "Step 2.8 - BONUS: Interactive chat with the agent"
+banner "Demo Complete"
 # ─────────────────────────────────────────────────────────────────────────────
-
-speak "Finally - you can actually TALK to the agent during the demo."
-speak "Ask it: 'Why did you scale up?' or 'What would you do if CPU hits 95%?'"
 echo ""
-echo -e "  ${YELLOW}To start chat mode, run:${NC}"
-cmd "python3 after/agent.py --user alice@company.com --chat"
+echo -e "  ${GREEN}Platform can now answer:${NC}"
 echo ""
-echo "  Type 'scale' to trigger a live scaling action from within the chat."
-echo "  Type 'exit' to quit."
+echo -e "    ${GREEN}✅ WHO${NC}  invoked the AI service → alice@company.com"
+echo -e "    ${GREEN}✅ WHAT${NC} boundaries the platform enforced → 2-5 replicas (Kyverno)"
+echo -e "    ${GREEN}✅ WHY${NC}  the AI made that decision → trace ID links to full reasoning"
 echo ""
-
-read -p "  Start chat mode now? [y/N] " -n 1 -r
-echo ""
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-  python3 "$SCRIPT_DIR/after/agent.py" --user alice@company.com --chat
-fi
-
-# ─────────────────────────────────────────────────────────────────────────────
-banner "Demo Complete! 🎉"
-# ─────────────────────────────────────────────────────────────────────────────
-
-echo ""
-echo -e "${GREEN}  Summary of what we demonstrated:${NC}"
-echo ""
-echo "  Pattern 1: User Context Propagation"
-echo "    → Every agent action annotated with alice@company.com"
-echo "    → Audit logs now show the human, not just the service account"
-echo ""
-echo "  Pattern 2: Dynamic Permission Boundaries"
-echo "    → Kyverno blocked scaling to 10 replicas (max is 5)"
-echo "    → RBAC would have allowed it - policies add runtime context"
-echo ""
-echo "  Pattern 3: Decision Attribution"
-echo "    → Full trace in Jaeger: metrics → LLM reasoning → action"
-echo "    → Trace ID links audit log to the exact reasoning chain"
-echo ""
-echo -e "${YELLOW}  Cleanup:${NC}"
-cmd "./teardown.sh"
+echo -e "  ${YELLOW}Cleanup:${NC} ./teardown.sh"
 echo ""
 
-# Kill port-forward
+# Kill port-forwards
 kill $PF_PID 2>/dev/null || true
