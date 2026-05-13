@@ -35,6 +35,9 @@ import time
 import uuid
 from datetime import datetime
 
+from dotenv import load_dotenv
+load_dotenv()
+
 # Suppress noisy OTel export warnings - if Jaeger isn't reachable, log cleanly
 logging.getLogger("opentelemetry.sdk.trace.export").setLevel(logging.CRITICAL)
 logging.getLogger("opentelemetry.exporter.otlp").setLevel(logging.CRITICAL)
@@ -53,7 +56,7 @@ from opentelemetry.trace import Status, StatusCode
 
 NAMESPACE = "cloudxai"
 DEPLOYMENT = "demo-app"
-JAEGER_OTLP_ENDPOINT = os.getenv("JAEGER_ENDPOINT", "http://localhost:4318/v1/traces")
+TEMPO_OTLP_ENDPOINT = os.getenv("TEMPO_ENDPOINT", "http://127.0.0.1:4318/v1/traces")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 
 # Policy boundaries (mirrors Kyverno policy for transparency)
@@ -64,7 +67,7 @@ MAX_REPLICAS = 5
 # ─── OpenTelemetry Setup ───────────────────────────────────────────────────────
 
 def setup_tracing(user: str) -> trace.Tracer:
-    """Initialize OTel tracer pointing at Jaeger."""
+    """Initialize OTel tracer pointing at Tempo."""
     resource = Resource.create({
         "service.name": "ai-scaling-agent",
         "service.version": "1.0.0",
@@ -73,10 +76,10 @@ def setup_tracing(user: str) -> trace.Tracer:
     })
 
     provider = TracerProvider(resource=resource)
-    exporter = OTLPSpanExporter(endpoint=JAEGER_OTLP_ENDPOINT)
+    exporter = OTLPSpanExporter(endpoint=TEMPO_OTLP_ENDPOINT)
     provider.add_span_processor(BatchSpanProcessor(
         exporter,
-        # Don't block the agent if Jaeger is unreachable
+        # Don't block the agent if Tempo is unreachable
         max_export_batch_size=512,
         export_timeout_millis=3000,
     ))
@@ -85,10 +88,16 @@ def setup_tracing(user: str) -> trace.Tracer:
     # Quick connectivity check - warn once, don't crash
     try:
         import urllib.request
-        urllib.request.urlopen(JAEGER_OTLP_ENDPOINT.replace("/v1/traces", ""), timeout=1)
+        from urllib.error import HTTPError
+        try:
+            urllib.request.urlopen(TEMPO_OTLP_ENDPOINT.replace("/v1/traces", ""), timeout=1)
+        except HTTPError as e:
+            # 404 is expected since OTLP receiver doesn't serve a root page
+            if e.code != 404:
+                raise e
     except Exception:
-        print(f"  ⚠️  Jaeger not reachable at {JAEGER_OTLP_ENDPOINT}")
-        print(f"     Run in another terminal: kubectl port-forward svc/jaeger 16686:16686 4318:4318 -n cloudxai")
+        print(f"  ⚠️  Tempo not reachable at {TEMPO_OTLP_ENDPOINT}")
+        print(f"     Run in another terminal: kubectl port-forward svc/grafana 3000:3000 -n cloudxai & kubectl port-forward svc/tempo 4318:4318 -n cloudxai")
         print(f"     Continuing without trace export...")
         print()
 
@@ -392,7 +401,7 @@ def run_scaling_cycle(user: str, tracer: trace.Tracer, apps_v1, dry_run: bool = 
             print(f'       accountability.ai/reason:      "{reasoning}"')
             print(f'       accountability.ai/cpu-observed: "{cpu:.1f}%"')
             print(f"\n  🔗 View full reasoning trace:")
-            print(f"     http://localhost:16686/search?service=ai-scaling-agent")
+            print(f"     http://localhost:3000/explore (Select 'Tempo' and query {{ .service.name = \"ai-scaling-agent\" }})")
         else:
             root_span.set_attribute("decision.action", "blocked")
             root_span.set_attribute("decision.result", "policy_violation")
@@ -426,7 +435,7 @@ Examples:
     parser.add_argument("--replicas", type=int, default=None, help="Override replica count (to demo policy blocking)")
     parser.add_argument("--dry-run", action="store_true", help="Show what would happen without making changes")
     parser.add_argument("--chat", action="store_true", help="Interactive chat mode with the agent")
-    parser.add_argument("--jaeger-endpoint", default=None, help="Override Jaeger OTLP endpoint")
+    parser.add_argument("--tempo-endpoint", default=None, help="Override Tempo OTLP endpoint")
 
     args = parser.parse_args()
 
@@ -434,9 +443,9 @@ Examples:
         print("❌ Error: OPENAI_API_KEY environment variable not set")
         sys.exit(1)
 
-    global JAEGER_OTLP_ENDPOINT
-    if args.jaeger_endpoint:
-        JAEGER_OTLP_ENDPOINT = args.jaeger_endpoint
+    global TEMPO_OTLP_ENDPOINT
+    if args.tempo_endpoint:
+        TEMPO_OTLP_ENDPOINT = args.tempo_endpoint
 
     print("=" * 60)
     print("🤖 Platform AI Operations Service")
@@ -444,9 +453,9 @@ Examples:
     print("=" * 60)
     print(f"\n  ✅ Pattern 1: User context propagation  ACTIVE")
     print(f"  ✅ Pattern 2: Dynamic policy boundaries  ACTIVE (replicas: {MIN_REPLICAS}-{MAX_REPLICAS})")
-    print(f"  ✅ Pattern 3: Decision attribution       ACTIVE (OTel → Jaeger)")
+    print(f"  ✅ Pattern 3: Decision attribution       ACTIVE (OTel → Grafana/Tempo)")
     print(f"\n  Platform service invoked by: {args.user}")
-    print(f"  Jaeger endpoint: {JAEGER_OTLP_ENDPOINT}")
+    print(f"  Tempo endpoint: {TEMPO_OTLP_ENDPOINT}")
     if args.dry_run:
         print(f"  Mode: DRY RUN (no changes will be made)")
     print()
@@ -488,7 +497,7 @@ Examples:
 
     # Flush traces
     time.sleep(2)
-    print("\n  📡 Traces flushed to Jaeger (if port-forward is running).")
+    print("\n  📡 Traces flushed to Tempo (if port-forward is running).")
 
 
 if __name__ == "__main__":

@@ -8,6 +8,14 @@ set -euo pipefail
 NAMESPACE="cloudxai"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+if [ -f "$SCRIPT_DIR/.env" ]; then
+  source "$SCRIPT_DIR/.env"
+fi
+
+if [ -d "$SCRIPT_DIR/venv" ]; then
+  source "$SCRIPT_DIR/venv/bin/activate"
+fi
+
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -117,15 +125,17 @@ kubectl get all -n "$NAMESPACE"
 
 pause
 
-section "2.2 - Start Jaeger (Decision Trace Viewer)"
+section "2.2 - Start Grafana & Tempo (Decision Trace Viewer)"
 echo ""
-echo "  Jaeger will show the full reasoning chain for every AI action."
-cmd "kubectl port-forward svc/jaeger 16686:16686 4318:4318 -n cloudxai &"
+echo "  Grafana will show the full reasoning chain for every AI action."
+cmd "kubectl port-forward svc/grafana 3000:3000 -n cloudxai & kubectl port-forward svc/tempo 4318:4318 -n cloudxai &"
 echo ""
-kubectl port-forward svc/jaeger 16686:16686 4318:4318 -n "$NAMESPACE" &>/dev/null &
-PF_PID=$!
+kubectl port-forward svc/grafana 3000:3000 -n "$NAMESPACE" &>/dev/null &
+PF_PID1=$!
+kubectl port-forward svc/tempo 4318:4318 -n "$NAMESPACE" &>/dev/null &
+PF_PID2=$!
 sleep 2
-echo -e "  ${GREEN}✅ Jaeger UI:${NC}   http://localhost:16686"
+echo -e "  ${GREEN}✅ Grafana UI:${NC}  http://localhost:3000/explore"
 echo -e "  ${GREEN}✅ OTLP ingest:${NC} http://localhost:4318"
 
 pause
@@ -196,10 +206,11 @@ kubectl get deployment demo-app -n "$NAMESPACE" \
 
 pause
 
-section "3.2 - The Decision Trace in Jaeger"
+section "3.2 - The Decision Trace in Grafana"
 echo ""
-echo "  Open: http://localhost:16686"
-echo "  Select service: ai-scaling-agent"
+echo "  Open: http://localhost:3000/explore"
+echo "  Select Data source: Tempo"
+echo "  Query: { .service.name = \"ai-scaling-agent\" }"
 echo ""
 echo "  Each trace shows the complete chain:"
 echo "    agent.scaling_cycle"
@@ -221,7 +232,7 @@ echo ""
 echo "  With these three patterns:"
 echo "    → Annotation: accountability.ai/triggered-by: alice@company.com"
 echo "    → Annotation: accountability.ai/trace-id: <id>"
-echo "    → Open Jaeger trace → CPU was 84% → LLM recommended scale-up → policy allowed it"
+echo "    → Open Grafana trace → CPU was 84% → LLM recommended scale-up → policy allowed it"
 echo "    → Full chain. Accountable. Done."
 
 pause
@@ -240,4 +251,4 @@ echo -e "  ${YELLOW}Cleanup:${NC} ./teardown.sh"
 echo ""
 
 # Kill port-forwards
-kill $PF_PID 2>/dev/null || true
+kill $PF_PID1 $PF_PID2 2>/dev/null || true

@@ -9,6 +9,10 @@ set -euo pipefail
 NAMESPACE="cloudxai"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+if [ -f "$SCRIPT_DIR/.env" ]; then
+  source "$SCRIPT_DIR/.env"
+fi
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -41,6 +45,12 @@ ok "OPENAI_API_KEY is set"
 
 # ── Python dependencies ──────────────────────────────────────────────────────
 banner "Installing Python dependencies"
+if [ ! -d "$SCRIPT_DIR/venv" ]; then
+  step "Creating Python virtual environment..."
+  python3 -m venv "$SCRIPT_DIR/venv"
+fi
+step "Activating virtual environment..."
+source "$SCRIPT_DIR/venv/bin/activate"
 step "Installing from requirements.txt..."
 pip install -q -r "$SCRIPT_DIR/requirements.txt"
 ok "Python dependencies installed"
@@ -76,13 +86,14 @@ step "Waiting for before demo-app to be ready..."
 kubectl rollout status deployment/demo-app -n default --timeout=60s
 ok "demo-app is running in default namespace"
 
-# ── Deploy Jaeger ─────────────────────────────────────────────────────────────
-banner "Deploying Jaeger (tracing backend)"
-kubectl apply -f "$SCRIPT_DIR/after/k8s/jaeger.yaml"
-step "Waiting for Jaeger to be ready..."
-kubectl rollout status deployment/jaeger -n "$NAMESPACE" --timeout=90s
-ok "Jaeger is running"
-
+# ── Deploy Grafana & Tempo ─────────────────────────────────────────────────────────────
+banner "Deploying Grafana & Tempo (tracing backend)"
+kubectl apply -f "$SCRIPT_DIR/after/k8s/grafana-tempo.yaml"
+step "Waiting for Tempo to be ready..."
+kubectl rollout status deployment/tempo -n "$NAMESPACE" --timeout=90s
+step "Waiting for Grafana to be ready..."
+kubectl rollout status deployment/grafana -n "$NAMESPACE" --timeout=90s
+ok "Grafana & Tempo are running"
 # ── Install Kyverno ───────────────────────────────────────────────────────────
 banner "Installing Kyverno (policy engine)"
 
@@ -118,14 +129,15 @@ echo ""
 echo -e "${GREEN}  Everything is ready. Here's what was deployed:${NC}"
 echo ""
 echo -e "  ${CYAN}Context:${NC}    docker-desktop"
-echo -e "  ${CYAN}Namespace:${NC}  cloudxai  (after scenario — Jaeger, demo-app, RBAC)"
+echo -e "  ${CYAN}Namespace:${NC}  cloudxai  (after scenario — Grafana, Tempo, demo-app, RBAC)"
 echo -e "  ${CYAN}Namespace:${NC}  default   (before scenario — plain demo-app)"
-echo -e "  ${CYAN}Tracing:${NC}    Jaeger in cloudxai namespace"
+echo -e "  ${CYAN}Tracing:${NC}    Grafana & Tempo in cloudxai namespace"
 echo -e "  ${CYAN}Policies:${NC}   Kyverno installed — policies NOT yet applied (that's the demo!)"
 echo ""
 echo -e "${YELLOW}  Before running the demo, open a new terminal and run:${NC}"
 echo ""
-echo -e "     ${CYAN}kubectl port-forward svc/jaeger 16686:16686 -n cloudxai${NC}"
+echo -e "     ${CYAN}kubectl port-forward svc/grafana 3000:3000 -n cloudxai & \\${NC}"
+echo -e "     ${CYAN}kubectl port-forward svc/tempo 4318:4318 -n cloudxai${NC}"
 echo ""
 echo -e "${YELLOW}  Then start the demo:${NC}"
 echo ""

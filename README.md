@@ -48,7 +48,7 @@ RBAC controls what the **service account** can do. It can't track which human au
 |---------|---------|------|
 | **1. User Context Propagation** | WHO | Annotation on every k8s action |
 | **2. Dynamic Permission Boundaries** | WHAT | Kyverno policy (not RBAC) |
-| **3. Decision Attribution** | WHY | OpenTelemetry → Jaeger |
+| **3. Decision Attribution** | WHY | OpenTelemetry → Grafana/Tempo |
 
 ---
 
@@ -87,7 +87,7 @@ cloudxai/
 │   │   ├── namespace.yaml          # cloudxai namespace
 │   │   ├── deployment.yaml         # Target workload
 │   │   ├── rbac.yaml               # ServiceAccount for platform AI
-│   │   └── jaeger.yaml             # Trace visualization
+│   │   └── grafana-tempo.yaml      # Trace backend and visualization
 │   ├── policies/
 │   │   ├── require-user-context.yaml   # Pattern 1: block no-user actions
 │   │   └── replica-bounds.yaml         # Pattern 2: enforce 2-5 replicas
@@ -171,7 +171,7 @@ kubectl get deployment demo-app -n cloudxai -o jsonpath='{.metadata.annotations}
 > *"Prod scaled to 20 replicas at 3am. Who triggered it?"*
 
 1. Find the deployment annotation → `triggered-by: alice@company.com`
-2. Copy `trace-id` → open Jaeger → full reasoning chain
+2. Copy `trace-id` → open Grafana → full reasoning chain
 3. See: CPU was 84% → LLM recommended scale-up → Kyverno allowed it (within bounds)
 4. Call Alice. Show the trace. Done in 60 seconds.
 
@@ -183,8 +183,9 @@ kubectl get deployment demo-app -n cloudxai -o jsonpath='{.metadata.annotations}
 # Kyverno policies not applying
 kubectl get clusterpolicy -o wide
 
-# No traces in Jaeger — check port-forward is forwarding BOTH ports
-kubectl port-forward svc/jaeger 16686:16686 4318:4318 -n cloudxai
+# No traces in Grafana — check port-forward is forwarding BOTH ports
+kubectl port-forward svc/grafana 3000:3000 -n cloudxai & \
+kubectl port-forward svc/tempo 4318:4318 -n cloudxai
 
 # Agent can't reach cluster
 kubectl config use-context docker-desktop

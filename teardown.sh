@@ -11,11 +11,11 @@ echo ""
 
 # Kill any port-forward processes
 echo "  → Stopping port-forwards..."
-pkill -f "kubectl port-forward svc/jaeger" 2>/dev/null || true
+pkill -f "kubectl port-forward svc/grafana" 2>/dev/null || true
 
-# Delete the cloudxai namespace (removes Jaeger, demo-app, RBAC, policies)
+# Delete the cloudxai namespace (removes Grafana, Tempo, demo-app, RBAC, policies)
 if kubectl get namespace cloudxai &>/dev/null; then
-  echo "  → Deleting cloudxai namespace (Jaeger, demo-app, RBAC, policies)..."
+  echo "  → Deleting cloudxai namespace (Grafana, Tempo, demo-app, RBAC, policies)..."
   kubectl delete namespace cloudxai
   echo "  ✅ cloudxai namespace deleted"
 else
