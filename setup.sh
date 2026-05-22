@@ -52,7 +52,7 @@ if [ ! -d "$SCRIPT_DIR/venv" ]; then
   else
     PYTHON_CMD="python3"
   fi
-  $PYTHON_CMD -m venv "$SCRIPT_DIR/venv"
+  $PYTHON_CMD -m venv --copies "$SCRIPT_DIR/venv"
 fi
 step "Activating virtual environment..."
 source "$SCRIPT_DIR/venv/bin/activate"
