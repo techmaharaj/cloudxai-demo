@@ -86,7 +86,7 @@ cloudxai/
 │   └── agent.py
 ├── after/                          # ✅ Platform AI with full accountability
 │   ├── k8s/
-│   │   ├── namespace.yaml          # cloudxai namespace
+│   │   ├── namespace.yaml          # grafanacon namespace
 │   │   ├── deployment.yaml         # Target workload
 │   │   ├── rbac.yaml               # ServiceAccount for platform AI
 │   │   └── grafana-tempo.yaml      # Trace backend and visualization
@@ -154,7 +154,7 @@ python3 after/agent.py --user alice@company.com --chat
 ### After (full accountability chain)
 
 ```bash
-kubectl get deployment demo-app -n cloudxai -o jsonpath='{.metadata.annotations}' | python3 -m json.tool
+kubectl get deployment demo-app -n grafanacon -o jsonpath='{.metadata.annotations}' | python3 -m json.tool
 ```
 ```json
 {
@@ -186,8 +186,8 @@ kubectl get deployment demo-app -n cloudxai -o jsonpath='{.metadata.annotations}
 kubectl get clusterpolicy -o wide
 
 # No traces in Grafana — check port-forward is forwarding BOTH ports
-kubectl port-forward svc/grafana 3000:3000 -n cloudxai & \
-kubectl port-forward svc/tempo 4318:4318 -n cloudxai
+kubectl port-forward svc/grafana 3000:3000 -n grafanacon & \
+kubectl port-forward svc/tempo 4318:4318 -n grafanacon
 
 # Agent can't reach cluster
 kubectl config use-context docker-desktop

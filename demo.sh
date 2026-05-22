@@ -5,7 +5,7 @@
 # ============================================================
 set -euo pipefail
 
-NAMESPACE="cloudxai"
+NAMESPACE="grafanacon"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 if [ -f "$SCRIPT_DIR/.env" ]; then
@@ -118,9 +118,9 @@ banner "PART 2: Three Accountability Patterns"
 
 section "2.1 - The Accountable Platform Service"
 echo ""
-echo "  Same platform AI service, now running in the 'cloudxai' namespace"
-echo "  with all three accountability patterns layered on top."
-cmd "kubectl get all -n cloudxai"
+echo "  Same platform AI service, now running in the 'grafanacon' namespace"
+echo "  It uses its own ServiceAccount, RBAC rules, Grafana and Tempo."
+cmd "kubectl get all -n grafanacon"
 kubectl get all -n "$NAMESPACE"
 
 pause
@@ -128,7 +128,7 @@ pause
 section "2.2 - Start Grafana & Tempo (Decision Trace Viewer)"
 echo ""
 echo "  Grafana will show the full reasoning chain for every AI action."
-cmd "kubectl port-forward svc/grafana 3000:3000 -n cloudxai & kubectl port-forward svc/tempo 4318:4318 -n cloudxai &"
+cmd "kubectl port-forward svc/grafana 3000:3000 -n grafanacon & kubectl port-forward svc/tempo 4318:4318 -n grafanacon &"
 echo ""
 kubectl port-forward svc/grafana 3000:3000 -n "$NAMESPACE" &>/dev/null &
 PF_PID1=$!
@@ -198,7 +198,7 @@ banner "PART 3: Accountability in Action"
 section "3.1 - What the Deployment Knows Now"
 echo ""
 echo "  Platform writes full accountability metadata to every action it takes:"
-cmd "kubectl get deployment demo-app -n cloudxai -o jsonpath='{.metadata.annotations}' | python3 -m json.tool"
+cmd "kubectl get deployment demo-app -n grafanacon -o jsonpath='{.metadata.annotations}' | python3 -m json.tool"
 echo ""
 kubectl get deployment demo-app -n "$NAMESPACE" \
   -o jsonpath='{.metadata.annotations}' 2>/dev/null | python3 -m json.tool || \

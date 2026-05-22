@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: cloudxai
+  name: grafanacon
   labels:
-    app.kubernetes.io/managed-by: cloudxai-demo
+    app.kubernetes.io/managed-by: grafanacon-demo
     demo: accountable-ai

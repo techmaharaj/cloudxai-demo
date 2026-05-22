@@ -22,7 +22,7 @@ spec:
           kinds:
           - Deployment
           namespaces:
-          - cloudxai
+          - grafanacon
           operations:
           - UPDATE
     validate:
@@ -45,7 +45,7 @@ spec:
           kinds:
           - Deployment
           namespaces:
-          - cloudxai
+          - grafanacon
           operations:
           - UPDATE
     validate:

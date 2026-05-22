@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: tempo-config
-  namespace: cloudxai
+  namespace: grafanacon
 data:
   tempo.yaml: |
     server:
@@ -25,7 +25,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: tempo
-  namespace: cloudxai
+  namespace: grafanacon
 spec:
   replicas: 1
   selector:
@@ -61,7 +61,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: tempo
-  namespace: cloudxai
+  namespace: grafanacon
 spec:
   selector:
     app: tempo
@@ -80,7 +80,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: grafana-datasources
-  namespace: cloudxai
+  namespace: grafanacon
 data:
   datasources.yaml: |
     apiVersion: 1
@@ -99,7 +99,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: grafana
-  namespace: cloudxai
+  namespace: grafanacon
 spec:
   replicas: 1
   selector:
@@ -133,7 +133,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: grafana
-  namespace: cloudxai
+  namespace: grafanacon
 spec:
   selector:
     app: grafana

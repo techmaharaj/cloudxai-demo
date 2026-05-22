@@ -54,7 +54,7 @@ from opentelemetry.trace import Status, StatusCode
 
 # ─── Configuration ────────────────────────────────────────────────────────────
 
-NAMESPACE = "cloudxai"
+NAMESPACE = "grafanacon"
 DEPLOYMENT = "demo-app"
 TEMPO_OTLP_ENDPOINT = os.getenv("TEMPO_ENDPOINT", "http://127.0.0.1:4318/v1/traces")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
@@ -97,7 +97,7 @@ def setup_tracing(user: str) -> trace.Tracer:
                 raise e
     except Exception:
         print(f"  ⚠️  Tempo not reachable at {TEMPO_OTLP_ENDPOINT}")
-        print(f"     Run in another terminal: kubectl port-forward svc/grafana 3000:3000 -n cloudxai & kubectl port-forward svc/tempo 4318:4318 -n cloudxai")
+        print(f"     Run in another terminal: kubectl port-forward svc/grafana 3000:3000 -n grafanacon & kubectl port-forward svc/tempo 4318:4318 -n grafanacon")
         print(f"     Continuing without trace export...")
         print()
 
@@ -394,7 +394,7 @@ def run_scaling_cycle(user: str, tracer: trace.Tracer, apps_v1, dry_run: bool = 
             root_span.set_status(Status(StatusCode.OK))
             print(f"\n  ✅ Platform successfully scaled to {new_replicas} replicas")
             print(f"\n  📋 Audit log now records:")
-            print(f'     service-account: "system:serviceaccount:cloudxai:ai-ops-agent"')
+            print(f'     service-account: "system:serviceaccount:grafanacon:ai-agent"')
             print(f'     annotations:')
             print(f'       accountability.ai/triggered-by: "{user}"   ← the human')
             print(f'       accountability.ai/trace-id:    "{trace_id}"')

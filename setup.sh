@@ -6,7 +6,7 @@
 # ============================================================
 set -euo pipefail
 
-NAMESPACE="cloudxai"
+NAMESPACE="grafanacon"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 if [ -f "$SCRIPT_DIR/.env" ]; then
@@ -78,11 +78,11 @@ kubectl apply -f "$SCRIPT_DIR/after/k8s/rbac.yaml"
 ok "ServiceAccount and RBAC applied"
 
 # ── Deploy target application (after scenario) ────────────────────────────────
-banner "Deploying demo application (after scenario → cloudxai namespace)"
+banner "Deploying demo application (after scenario → grafanacon namespace)"
 kubectl apply -f "$SCRIPT_DIR/after/k8s/deployment.yaml"
 step "Waiting for demo-app to be ready..."
 kubectl rollout status deployment/demo-app -n "$NAMESPACE" --timeout=60s
-ok "demo-app is running in cloudxai namespace"
+ok "demo-app is running in grafanacon namespace"
 
 # ── Deploy target application (before scenario) ───────────────────────────────
 banner "Deploying demo application (before scenario → default namespace)"
@@ -134,15 +134,15 @@ echo ""
 echo -e "${GREEN}  Everything is ready. Here's what was deployed:${NC}"
 echo ""
 echo -e "  ${CYAN}Context:${NC}    docker-desktop"
-echo -e "  ${CYAN}Namespace:${NC}  cloudxai  (after scenario — Grafana, Tempo, demo-app, RBAC)"
+echo -e "  ${CYAN}Namespace:${NC}  grafanacon  (after scenario — Grafana, Tempo, demo-app, RBAC)"
 echo -e "  ${CYAN}Namespace:${NC}  default   (before scenario — plain demo-app)"
-echo -e "  ${CYAN}Tracing:${NC}    Grafana & Tempo in cloudxai namespace"
+echo -e "  ${CYAN}Tracing:${NC}    Grafana & Tempo in grafanacon namespace"
 echo -e "  ${CYAN}Policies:${NC}   Kyverno installed — policies NOT yet applied (that's the demo!)"
 echo ""
 echo -e "${YELLOW}  Before running the demo, open a new terminal and run:${NC}"
 echo ""
-echo -e "     ${CYAN}kubectl port-forward svc/grafana 3000:3000 -n cloudxai & \\${NC}"
-echo -e "     ${CYAN}kubectl port-forward svc/tempo 4318:4318 -n cloudxai${NC}"
+echo -e "     ${CYAN}kubectl port-forward svc/grafana 3000:3000 -n grafanacon & \\${NC}"
+echo -e "     ${CYAN}kubectl port-forward svc/tempo 4318:4318 -n grafanacon${NC}"
 echo ""
 echo -e "${YELLOW}  Then start the demo:${NC}"
 echo ""

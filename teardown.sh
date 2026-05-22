@@ -13,13 +13,13 @@ echo ""
 echo "  → Stopping port-forwards..."
 pkill -f "kubectl port-forward svc/grafana" 2>/dev/null || true
 
-# Delete the cloudxai namespace (removes Grafana, Tempo, demo-app, RBAC, policies)
-if kubectl get namespace cloudxai &>/dev/null; then
-  echo "  → Deleting cloudxai namespace (Grafana, Tempo, demo-app, RBAC, policies)..."
-  kubectl delete namespace cloudxai
-  echo "  ✅ cloudxai namespace deleted"
+# Delete the grafanacon namespace (removes Grafana, Tempo, demo-app, RBAC, policies)
+if kubectl get namespace grafanacon &>/dev/null; then
+  echo "  → Deleting grafanacon namespace (Grafana, Tempo, demo-app, RBAC, policies)..."
+  kubectl delete namespace grafanacon
+  echo "  ✅ grafanacon namespace deleted"
 else
-  echo "  ℹ️  cloudxai namespace not found, skipping"
+  echo "  ℹ️  grafanacon namespace not found, skipping"
 fi
 
 # Delete the before-scenario app from default namespace

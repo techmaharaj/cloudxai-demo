@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: demo-app
-  namespace: cloudxai
+  namespace: grafanacon
   labels:
     app: demo-app
     managed-by: ai-agent
