@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================
-# CloudXAI Demo - Setup Script
+# GrafanaCon Demo - Setup Script
 # Works with an existing Docker Desktop Kubernetes cluster.
 # Run time: ~3-4 minutes
 # ============================================================

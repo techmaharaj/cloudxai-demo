@@ -414,7 +414,7 @@ def run_scaling_cycle(user: str, tracer: trace.Tracer, apps_v1, dry_run: bool = 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Accountable AI Scaling Agent",
+        description="Who Told the AI to Do That? - Demo Agent",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:

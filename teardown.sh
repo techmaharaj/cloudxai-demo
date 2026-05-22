@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # ============================================================
-# CloudXAI Demo - Teardown Script
+# GrafanaCon Demo - Teardown Script
 # Removes all demo resources from the Docker Desktop cluster.
 # Does NOT delete the cluster itself.
 # ============================================================
 set -euo pipefail
 
-echo "🗑️  Tearing down CloudXAI demo resources..."
+echo "🗑️  Tearing down GrafanaCon demo resources..."
 echo ""
 
 # Kill any port-forward processes

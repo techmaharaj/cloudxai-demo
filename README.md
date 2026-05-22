@@ -1,8 +1,10 @@
-# Accountable AI on Kubernetes
-### CloudXAI Conference Demo
+# Who Told the AI to Do That?
+### GrafanaCon Demo
 
-> **Talk:** "Accountable AI on Kubernetes: How Platforms Enforce What RBAC Can't"
+> **Talk:** "Who Told the AI to Do That?"
 > **Demo duration:** ~10 minutes | **Setup time:** ~5 minutes
+
+Someone invoked your platform AI agent. It scaled a deployment, patched a config, and changed something in prod. Now there's an incident, and everyone's asking the same question - who triggered this, and why did it do that? Your audit log points to a service account. Your RBAC policy is clean. You have no answer. This session is about fixing that. We'll look at how OpenTelemetry, Tempo, and Grafana can give you a complete accountability chain for every AI agent action — the human who invoked it, the metrics it observed, the reasoning it applied, the decision it made. All queryable in one place. Because "the AI did it" is not a postmortem.
 
 ---
 

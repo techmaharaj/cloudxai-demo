@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ============================================================
-# Accountable AI on Kubernetes - Platform Engineering Demo
-# "How Platforms Enforce What RBAC Can't"
+# Who Told the AI to Do That? - GrafanaCon Demo
+# "Who Told the AI to Do That?"
 # ============================================================
 set -euo pipefail
 
@@ -48,11 +48,11 @@ section() {
 cmd() { echo -e "\n  ${GREEN}\$ $1${NC}"; }
 
 # ─────────────────────────────────────────────────────────────────────────────
-banner "Accountable AI on Kubernetes"
+banner "Who Told the AI to Do That?"
 echo ""
-echo -e "  ${CYAN}Talk:${NC} How Platforms Enforce What RBAC Can't"
-echo -e "  ${CYAN}Scenario:${NC} Your platform team provides AI Operations as a Service."
-echo -e "  ${CYAN}Problem:${NC} When the platform AI acts, audit logs lose the human behind it."
+echo -e "  ${CYAN}Talk:${NC} Who Told the AI to Do That?"
+echo -e "  ${CYAN}Scenario:${NC} Someone invoked your platform AI agent. Now there's an incident."
+echo -e "  ${CYAN}Problem:${NC} The audit log shows a service account. Who triggered this and why?"
 # ─────────────────────────────────────────────────────────────────────────────
 
 pause
