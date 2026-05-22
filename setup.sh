@@ -47,7 +47,12 @@ ok "OPENAI_API_KEY is set"
 banner "Installing Python dependencies"
 if [ ! -d "$SCRIPT_DIR/venv" ]; then
   step "Creating Python virtual environment..."
-  python3 -m venv "$SCRIPT_DIR/venv"
+  if command -v python3.13 &>/dev/null; then
+    PYTHON_CMD="python3.13"
+  else
+    PYTHON_CMD="python3"
+  fi
+  $PYTHON_CMD -m venv "$SCRIPT_DIR/venv"
 fi
 step "Activating virtual environment..."
 source "$SCRIPT_DIR/venv/bin/activate"
