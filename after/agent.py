@@ -33,7 +33,7 @@ import random
 import sys
 import time
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -116,7 +116,7 @@ def build_accountability_annotations(user: str, trace_id: str, reason: str, cpu:
         "accountability.ai/trace-id": trace_id,
         "accountability.ai/reason": reason,
         "accountability.ai/cpu-observed": f"{cpu:.1f}%",
-        "accountability.ai/timestamp": datetime.utcnow().isoformat() + "Z",
+        "accountability.ai/timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "accountability.ai/agent-version": "1.0.0",
     }
 
@@ -349,7 +349,7 @@ def run_scaling_cycle(user: str, tracer: trace.Tracer, apps_v1, dry_run: bool = 
     with tracer.start_as_current_span("agent.scaling_cycle") as root_span:
         root_span.set_attribute("agent.triggered_by", user)
         root_span.set_attribute("agent.trace_id", trace_id)
-        root_span.set_attribute("agent.timestamp", datetime.utcnow().isoformat())
+        root_span.set_attribute("agent.timestamp", datetime.now(timezone.utc).isoformat())
 
         # ── Step 1: Observe metrics ──────────────────────────────────────────
         with tracer.start_as_current_span("metrics.observe") as metrics_span:
